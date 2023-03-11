@@ -11,10 +11,10 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 * Press "Spela in" to start recording your voice
 * Press "Stoppa inspelning" - stops recording and saves the audio file to the audio directory, then sends the audio file to Whisper for transcription
 * Choose a template; Idéer (ideas), LinkedIn or Projekt - sends the transcribed text to GPT3.5-turbo with a promt from the config.py file
-* Press "Spara" (save) to save the result from GPT3.5-turbo to your Obsidian directory.
+* Press "Spara" (save) to save the result from GPT3.5-turbo to your Obsidian https://obsidian.md/ directory
 
 ## How to?
-* You need an API key from OpenAI - openai.com
+* You need an API key from OpenAI https://openai.com/
 * Download files and directories to your computer
 * Install python modules using pip : __Tkinter__, __pyaudio__ and __openai__
 * Open __config.py__ and insert you OpenAI API key in __OPEN_AI_API_KEY = ''__ and change the file path to your Obsidian directory, where you want to store your notes in __OBSIDIAN_FILE_PATH = ''__ 
