@@ -29,7 +29,6 @@ frames = None
 wf = None
 t = None
 CHANNELS = None
-filename = c.AUDIO_FILE_PATH
 
 recorded_audio_exists = False
 ai_text_exists = False
