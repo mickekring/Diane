@@ -20,3 +20,6 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 * Open __config.py__ and insert you OpenAI API key in __OPEN_AI_API_KEY = ''__ and change the file path to your Obsidian directory, where you want to store your notes in __OBSIDIAN_FILE_PATH = ''__ 
 * Run __main.py__ and have fun
 * Promtps for the templates are stored in config.py as well
+
+## Problems?
+* If you run into empty recordings, you want to change the privacy settings of macOS that prohibits the use the microton via a python script that runs in IDLE. You'll also get a popup to grant microton access for Terminal.
