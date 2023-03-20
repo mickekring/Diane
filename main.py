@@ -1,5 +1,5 @@
 
-# version = 0.2
+# version = 0.1
 
 import tkinter as tk
 from tkinter import ttk
