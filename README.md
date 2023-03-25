@@ -16,11 +16,12 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 ## How to?
 * You need an API key from OpenAI https://openai.com/
 * Download files and directories to your computer
-* Install FFMPEG
+* Install FFMPEG on your computer
 * Install python modules using pip : __customtkinter__, __pyaudio__, __pydub__ and __openai__
 * Open __config.py__ and insert you OpenAI API key in __OPEN_AI_API_KEY = ''__ and change the file path to your Obsidian directory, where you want to store your notes in __OBSIDIAN_FILE_PATH = ''__ 
 * Run __main.py__ and have fun
 * Promtps for the templates are stored in config.py as well
+* If you want to add or edit the dropdown menu it starts from line 272 in the function __button_callback()__
 
 ## Problems?
 * If you run into empty recordings, you want to change the privacy settings of MacOS that prohibits the use the microphone via a python script that runs in IDLE. You'll also get a popup to grant microphone access for Terminal.
