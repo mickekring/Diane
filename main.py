@@ -1,18 +1,20 @@
+### Diane
+### Version: 0.2
+### Author: Micke Kring
+### Contact: jag@mickekring.se
 
-# version = 0.1
-
-import tkinter as tk
-from tkinter import ttk
+import customtkinter as ctk
+from PIL import Image
 import pyaudio
 import wave
 import threading
 import os
 import sys
 import datetime
-from tkinter import *
 import openai
 import config as c
 import time
+from pydub import AudioSegment
 
 if sys.platform == "win32":
 	import ctypes
@@ -33,38 +35,31 @@ CHANNELS = None
 recorded_audio_exists = False
 ai_text_exists = False
 
+global transcribed_audio_exists
+transcribed_audio_exists = False
 
-# Create the function that will be called when the variable changes
 
-def update_button1_state(*args):
-	if recorded_audio_exists:
-		button1.config(state="tk.NORMAL")
-	else:
-		button1.config(state="tk.DISABLED")
+# Set Appearance
 
-def update_button2_state(*args):
-	if recorded_audio_exists:
-		button2.config(state="tk.NORMAL")
-	else:
-		button2.config(state="tk.DISABLED")
+#customtkinter.set_appearance_mode("system")  # default value
+ctk.set_appearance_mode("dark")
+#customtkinter.set_appearance_mode("light")
+ctk.set_default_color_theme("my-theme.json")
 
-def update_button3_state(*args):
-	if recorded_audio_exists:
-		button3.config(state="tk.NORMAL")
-	else:
-		button3.config(state="tk.DISABLED")
 
-def update_button_save_state(*args):
-	if ai_text_exists:
-		button_save.config(state="tk.NORMAL")
-	else:
-		button_save.config(state="tk.DISABLED")
+
+# Converting wave file to mp3
+
+def convert_to_mp3(input_file, output_file):
+	audio = AudioSegment.from_wav(input_file)
+	audio.export(output_file, format="mp3")
+
 
 
 # Define the function to be called when the button is clicked
 
-def record():
-	global recording, frames, wf, t, p, RATE, FORMAT, CHANNELS, filename, now
+def record(app_instance, icon_rec, icon_stop_rec):
+	global recording, frames, wf, t, p, RATE, FORMAT, CHANNELS, filename, mp3_filename, now, transcribed_audio_exists
 	
 	if not recording:
 		
@@ -81,10 +76,11 @@ def record():
                         frames_per_buffer=CHUNK)
 		recording = True
 		
-		button_rec.config(text="Stoppa inspelning")
+		app_instance.button_record.configure(text="Stoppa inspelning", image=icon_stop_rec)
+		transcribed_audio_exists = False
 
-		text_widget.delete(1.0, tk.END)
-		text_widget.insert(tk.END, "Spelar in... prata på...\n\nKlicka på stopp när du är klar.")
+		app_instance.textbox.delete(1.0, 'end')
+		app_instance.textbox.insert('end', "1. Spelar in...\n")
         
 		print()
 		print("--- --- ---\n")
@@ -98,20 +94,36 @@ def record():
 		recording = False
 		t.join()
 		now = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-		filename = f"audio/anteckning_{now}.wav"
+		filename = f"audio/audio_{now}.wav"
 		wf = wave.open(filename, 'wb')
 		wf.setnchannels(CHANNELS)
 		wf.setsampwidth(p.get_sample_size(FORMAT))
 		wf.setframerate(RATE)
 		wf.writeframes(b''.join(frames))
 		wf.close()
-		button_rec.config(text="Spela in igen")
 
-		print("Recording stopped.\nSending to Whisper.")
+		# Convert WAV to MP3
+		print("Converting to mp3")
+		mp3_filename = f"audio/audio_{now}.mp3"
+		convert_to_mp3(filename, mp3_filename)
 
-		print(filename)
+		app_instance.button_record.configure(text="Spela in igen", image=icon_rec)
 
-		send_to_whisper(filename)
+		#app_instance.textbox.delete(1.0, 'end')
+		app_instance.textbox.insert('end', "\n2. Inspelning stoppad.\nLjudfilen " + str(now) 
+			+ ".wav\när sparad.\n")
+
+		recorded_audio_exists = True
+		
+		if recorded_audio_exists:
+			app_instance.button_send.configure(state="normal")
+			app_instance.button_save.configure(state="normal")
+
+		print("Recording stopped.\n")
+
+		print(filename + "\n")
+		print(mp3_filename + "\n")
+
 
 
 def read_audio_frames(stream, chunk, frames):
@@ -123,16 +135,23 @@ def read_audio_frames(stream, chunk, frames):
 	stream.close()
 
 
+
 # Sending audio to Whisper
 
-def send_to_whisper(filename):
+def send_to_whisper(app_instance, user_choice):
 
-	text_widget.delete(1.0, tk.END)
-	text_widget.insert(tk.END, "Din text transkriberas...")
+	global transcribed_audio_exists
+	global user_made_choice
+	global chat_response
+
+	user_made_choice = user_choice
 	
 	print("Sending to Whisper...")
+	print(user_choice)
+
+	app_instance.textbox.insert('end', "\n4. Skickar inspelning till transkribering...\n")
 	
-	audio_file= open(filename, "rb")
+	audio_file= open(mp3_filename, "rb")
 	transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
 	global transcribed
@@ -141,75 +160,39 @@ def send_to_whisper(filename):
 	print()
 	print(transcribed)
 
-	update_button1_state(True)
-	update_button2_state(True)
-	update_button3_state(True)
-	update_button_save_state(True)
+	chat_response = transcribed
 
-	text_widget.delete(1.0, tk.END)
-	text_widget.insert(tk.END, "Transkribering:\n\n" + transcribed)
+	app_instance.textbox.insert('end', "\n___ Transkribering ___ \n\n" + transcribed + "\n")
+
+	transcribed_audio_exists = True
+
 
 
 # Sending transcription to GPT based on choice of template
 
-def send_to_gpt(choice):
+def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	print()
-	print("Sending to GPT-3...")
+	print("Sending to " + gpt_model + "...")
 
 	global chat_response
+	global user_made_choice
+
+	user_made_choice = choice
 
 	messages = []
-	#messages = c.LINKED_IN_SYSTEM
 
-	if choice == "linkedin":
-		
-		prompt_primer = c.LINKED_IN_PROMPT_PRIMER
-		messages.append({"role": "user", "content": prompt_primer + "\n" + transcribed})
+	messages.append({"role": "user", "content": prompt_primer + "\n" + transcribed})
 
-	elif choice == "ideas":
-
-		prompt_primer = c.IDEAS_PROMPT_PRIMER
-		messages.append({"role": "user", "content": prompt_primer + "\n" + transcribed})
-
-	elif choice == "project":
-
-		prompt_primer = c.PROJECT_PROMPT_PRIMER
-		messages.append({"role": "user", "content": prompt_primer + "\n" + transcribed})
-
-	completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+	completion = openai.ChatCompletion.create(model=gpt_model, messages=messages)
 
 	chat_response = completion.choices[0].message.content
 	print(f'ChatGPT: {chat_response}')
 
-	text_widget.delete(1.0, tk.END)
-	text_widget.insert(tk.END, "GPT 3.5-turbo: \n" + chat_response)
-
-	if choice == "linkedin":
-
-		write_promtp_dall_e(chat_response)
+	app_instance.textbox.insert('end', "\n___ " + choice + ": " + gpt_model + " ___\n\n" + chat_response + "\n")
 
 
-# Writes prompt for DALL-E when LinkedIn choice is made
 
-def write_promtp_dall_e(chat_response):
-
-	global dall_e_response
-
-	messages = []
-
-	prompt_primer = c.DALL_E_PROMT_PRIMER
-
-	messages.append({"role": "user", "content": prompt_primer + "\n" + chat_response})
-
-	completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-
-	dall_e_response = completion.choices[0].message.content
-	print(f'ChatGPT DALL-E: {dall_e_response}')
-
-	send_to_dall_e(dall_e_response)
-
-
-# Created markdown file for Obsidian
+# Create markdown file for Obsidian
 
 def write_to_file():
 	print()
@@ -217,14 +200,14 @@ def write_to_file():
 
 	now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
-	f = open("docs/" + choice + " " + now + ".txt", "w")
+	f = open("docs/" + user_made_choice + now + ".txt", "w")
 	f.write(chat_response)
 	f.close()
 
 	if c.NOTES_APP == "obsidian":
-		f = open(c.OBSIDIAN_FILE_PATH + choice.capitalize() + " " + now + ".md", "w")
+		f = open(c.OBSIDIAN_FILE_PATH + user_made_choice.capitalize() + " " + now + ".md", "w")
 		
-		if choice == "linkedin":
+		if user_made_choice == "linkedin":
 
 			f.write('<img src="' + dall_e_img_url + '">\n' + chat_response)
 
@@ -235,107 +218,181 @@ def write_to_file():
 		f.close()
 
 
-# Sending prompt to DALL-E
 
-def send_to_dall_e(dall_e_response):
-	
-	global dall_e_img_url
+class App(ctk.CTk):
+	def __init__(self):
+		super().__init__()
 
-	PROMPT = dall_e_response
-	
-	response = openai.Image.create(
-    prompt=PROMPT,
-    n=1,
-    size="512x512",
-	)
-	
-	print()
-	dall_e_img_url = response["data"][0]["url"]
-	print(response["data"][0]["url"])
+		self.geometry("400x660")
+		self.title("Diane - version 0.2")
+		self.minsize(400, 660)
 
+		icon_rec = ctk.CTkImage(light_image=Image.open("images/rec.png"), 
+			dark_image=Image.open("images/rec.png"), size=(46, 50))
 
-def choice_linkedin():
+		icon_stop_rec = ctk.CTkImage(light_image=Image.open("images/stop_rec.png"), 
+			dark_image=Image.open("images/stop_rec.png"), size=(46, 50))
 
-	global choice
-
-	choice = "linkedin"
-	send_to_gpt(choice)
+		image_logo = ctk.CTkImage(light_image=Image.open("images/logo.png"), 
+			dark_image=Image.open("images/logo.png"), size=(135, 40))
 
 
-def choice_ideas():
-
-	global choice
-
-	choice = "ideas"
-	send_to_gpt(choice)
+		# create 2x2 grid system
+		self.grid_rowconfigure(0, weight=1)
+		self.grid_columnconfigure((0, 1, 2), weight=1)
 
 
-def choice_project():
+		# Create logo label
+		self.logo_label = ctk.CTkLabel(master=self, image=image_logo, text="")
+		self.logo_label.grid(row=0, column=0, columnspan=3, padx=20, pady=(20, 0), sticky="nw")
 
-	global choice
+		self.textbox = ctk.CTkTextbox(master=self, wrap="word", height=340)
+		self.textbox.grid(row=1, column=0, columnspan=3, padx=20, pady=(20, 0), sticky="nsew")
 
-	choice = "project"
-	send_to_gpt(choice)
-
-
-# Create a new window
-root = tk.Tk()
-
-# Set the window size and position
-root.geometry("380x638+300+300")
-root.configure(background='#000000')
-
-# Set the window title
-root.title("Diane")
-
-# Set the theme to 'clam'
-ttk.Style().theme_use('clam')
-
-# Create a style object
-style = ttk.Style()
-
-# Set the background color, text color, and hover text color of the button using the style object
-style.configure('Red.TButton', padding=20, width=34, background='#ec5545', foreground='white', font=('Arial', 16, 'bold'), bordercolor='black', borderwidth=0)
-style.map('Red.TButton', foreground=[('active', '#ec5545'), ('disabled', 'grey')])
-
-style.configure('Green.TButton', padding=20, width=34, background='#68cd67', foreground='white', font=('Arial', 16, 'bold'), bordercolor='black', borderwidth=0)
-style.map('Green.TButton', foreground=[('active', '#68cd67'), ('disabled', '#8e8e93')])
-
-style.configure('Third.TButton', padding=(2, 20), width=11, background='#68cd67', foreground='white', font=('Arial', 16, 'bold'), bordercolor='black', borderwidth=0)
-style.map('Third.TButton', foreground=[('active', '#68cd67'), ('disabled', '#8e8e93')])
-
-# Create a text widget
-# Create a font object with the desired font and size
-text_font = ("Arial", 18)
-text_widget = tk.Text(root, width=30, height=18, bg='#222222', pady=10, padx=10, fg='white', font=text_font, wrap="word")
-text_widget.configure(highlightbackground='#000000')
-
-# Add the text widget to the window using the grid geometry manager
-text_widget.grid(row=0, column=0, padx=10, pady=10, columnspan=3)
-
-# Insert some text into the widget
-text_widget.insert(tk.END, "Välkommen!\n\nJag är Diane. Spela in när du är redo.\n\nNär du trycker på stopp skickas din\ninspelning för transkribering.\nDet kan ta upp till ett par minuter.")
-
-# Create a button
-button_rec = ttk.Button(root, text="Spela in", command=record, style='Red.TButton')
-
-button1 = ttk.Button(root, text="Idéer", style='Third.TButton', state="disabled", command=choice_ideas)
-button2 = ttk.Button(root, text="LinkedIn", style='Third.TButton', state="disabled", command=choice_linkedin)
-button3 = ttk.Button(root, text="Projekt", style='Third.TButton', state="disabled", command=choice_project)
-
-button_save = ttk.Button(root, state="disabled", text="Spara", style='Green.TButton', command=write_to_file)
-
-# Add the buttons to the window using the grid geometry manager
-button_rec.grid(row=1, column=0, padx=10, pady=0, columnspan=3)
-
-button1.grid(row=2, column=0, padx=10, pady=10, columnspan=1)
-button2.grid(row=2, column=1, padx=0, pady=10, columnspan=1)
-button3.grid(row=2, column=2, padx=10, pady=10, columnspan=1)
-
-button_save.grid(row=3, column=0, padx=10, pady=0, columnspan=3)
+		self.button_record = ctk.CTkButton(master=self, image=icon_rec, height=70, 
+			command=lambda: record(self, icon_rec, icon_stop_rec), text="Spela in")
+		self.button_record.grid(row=2, column=0, columnspan=3, padx=20, pady=20, sticky="ew")
+		self.button_record.configure(fg_color="#eb4e3d", hover_color="#a3392e")
 
 
-### MAIN ###
+		self.combobox = ctk.CTkComboBox(master=self, height=46, 
+			values=["--- Välj mall ---", "Endast transkribering", "Generellt möte (GPT-3)", "Tankar och idéer (GPT-3)", 
+			"Projektbeskrivning (GPT-4)", "LinkedIn (GPT-3)", "Twitter (GPT-3)", "Tala in din egna prompt (GPT-4)"])
+		self.combobox.grid(row=3, column=0, columnspan=2, padx=(20, 10), pady=0, sticky="ew")
 
-# Run the main event loop
-root.mainloop()
+		self.button_send = ctk.CTkButton(master=self, height=46, command=self.button_callback, text="Bearbeta text")
+		self.button_send.grid(row=3, column=2, columnspan=1, padx=(10, 20), pady=0, sticky="ew")
+		self.button_send.configure(fg_color="gray20", hover_color="gray15", state="disabled")
+
+		self.button_save = ctk.CTkButton(master=self, height=46, command=write_to_file, text="Spara")
+		self.button_save.grid(row=4, column=0, columnspan=3, padx=20, pady=20, sticky="ew")
+		self.button_save.configure(fg_color="#65c366", hover_color="#478d48", state="disabled")
+
+
+	def button_callback(self):
+		self.textbox.insert("insert", "\n3. Val: " + self.combobox.get() + "\n")
+		self.choice_made = self.combobox.get()
+		print("\n3. " + self.choice_made)
+
+		if self.choice_made == "--- Välj mall ---":
+			self.textbox.insert("insert", "\nDu måste välja en mall i rullgardinsmenyn.")
+
+
+		elif self.choice_made == "Endast transkribering":
+
+			whisper_thread = threading.Thread(target=send_to_whisper, args=(self, self.choice_made,))
+			whisper_thread.start()
+
+
+		elif self.choice_made == "LinkedIn (GPT-3)":
+
+			def process_choice(app_instance):
+				global transcribed_audio_exists
+				
+				if transcribed_audio_exists == False:
+					send_to_whisper(app_instance, self.choice_made)
+				while not transcribed_audio_exists:
+					time.sleep(0.1)
+
+				send_to_gpt(c.LINKED_IN_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+
+
+			process_thread = threading.Thread(target=process_choice, args=(self,))
+			process_thread.start()
+
+
+		elif self.choice_made == "Twitter (GPT-3)":
+
+			def process_choice(app_instance):
+				global transcribed_audio_exists
+				
+				if transcribed_audio_exists == False:
+					send_to_whisper(app_instance, self.choice_made)
+				while not transcribed_audio_exists:
+					time.sleep(0.1)
+
+				send_to_gpt(c.TWITTER_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+
+
+			process_thread = threading.Thread(target=process_choice, args=(self,))
+			process_thread.start()
+
+
+		elif self.choice_made == "Generellt möte (GPT-3)":
+
+			def process_choice(app_instance):
+				global transcribed_audio_exists
+				
+				if transcribed_audio_exists == False:
+					send_to_whisper(app_instance, self.choice_made)
+				while not transcribed_audio_exists:
+					time.sleep(0.1)
+
+				send_to_gpt(c.GENERAL_MEET_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+
+
+			process_thread = threading.Thread(target=process_choice, args=(self,))
+			process_thread.start()
+
+
+		elif self.choice_made == "Tankar och idéer (GPT-3)":
+
+			def process_choice(app_instance):
+				global transcribed_audio_exists
+				
+				if transcribed_audio_exists == False:
+					send_to_whisper(app_instance, self.choice_made)
+				while not transcribed_audio_exists:
+					time.sleep(0.1)
+
+				send_to_gpt(c.IDEAS_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+
+
+			process_thread = threading.Thread(target=process_choice, args=(self,))
+			process_thread.start()
+
+
+		elif self.choice_made == "Projektbeskrivning (GPT-4)":
+
+			def process_choice(app_instance):
+				global transcribed_audio_exists
+				
+				if transcribed_audio_exists == False:
+					send_to_whisper(app_instance, self.choice_made)
+				while not transcribed_audio_exists:
+					time.sleep(0.1)
+
+				send_to_gpt(c.PROJECT_PROMPT_PRIMER, c.GPT4, app_instance, self.choice_made)
+
+
+			process_thread = threading.Thread(target=process_choice, args=(self,))
+			process_thread.start()
+
+
+		elif self.choice_made == "Tala in din egna prompt (GPT-4)":
+
+			def process_choice(app_instance):
+				global transcribed_audio_exists
+				
+				if transcribed_audio_exists == False:
+					send_to_whisper(app_instance, self.choice_made)
+				while not transcribed_audio_exists:
+					time.sleep(0.1)
+
+				send_to_gpt(c.YOUR_OWN_PROMTP_PRIMER, c.GPT4, app_instance, self.choice_made)
+
+
+			process_thread = threading.Thread(target=process_choice, args=(self,))
+			process_thread.start()
+
+			
+		else:
+			self.textbox.insert("insert", "\nDin text transkriberas nu och skickas\ndärefter till GPT.")
+
+
+
+if __name__ == "__main__":
+	app = App()
+	app.mainloop()
+
+
