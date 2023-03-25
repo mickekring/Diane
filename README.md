@@ -1,7 +1,7 @@
 # Diane
 This is a basic, simple prototype of the app Diane, which is a voice recorder using Whisper to transcribe and GPT to process text based on a template. Finally it saves the result to your Obsidian directory.
 
-![diane](https://user-images.githubusercontent.com/10948066/224471311-6a09757d-34fa-4bc0-8cd5-c6eb770dd243.jpg)
+![dianev02](https://user-images.githubusercontent.com/10948066/227736764-25185eaa-d669-4084-9199-0e7b23d6f13d.jpg)
 
 ## Disclaimer
 * Written in Python by a non-coder
