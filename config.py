@@ -2,7 +2,7 @@
 
 ### API KEYS AND CREDENTIALS
 
-OPEN_AI_API_KEY = 'sk-sdewfsef9ef98ef2ne8fu893f83uf9n834nf803u0isK9'
+OPEN_AI_API_KEY = 'sk-youropenaikey'
 
 GPT3 = "gpt-3.5-turbo"
 GPT4 = "gpt-4"
