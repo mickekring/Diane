@@ -23,6 +23,9 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 * Promtps for the templates are stored in config.py as well
 * If you want to add or edit the dropdown menu it starts from line 272 in the function __button_callback()__
 
+## Updates
+* v 0.3 | 2023-09-08 | Added a delay when you press 'stop recording' so you don't accidentally double press it and start a new recording. I also changed the conversion to mp3, so that the audio file always should stay below 25 MB, since that it the max input when sending the file to Whisper.
+
 ## Problems?
 * If you run into empty recordings, you want to change the privacy settings of MacOS that prohibits the use the microphone via a python script that runs in IDLE. You'll also get a popup to grant microphone access for Terminal.
 
