@@ -1,5 +1,5 @@
 ### Diane
-### Version: 0.2
+### Version: 0.3
 ### Author: Micke Kring
 ### Contact: jag@mickekring.se
 
@@ -15,6 +15,7 @@ import openai
 import config as c
 import time
 from pydub import AudioSegment
+#from elevenlabs import set_api_key
 
 if sys.platform == "win32":
 	import ctypes
@@ -22,7 +23,7 @@ if sys.platform == "win32":
 # Variables
 
 openai.api_key = c.OPEN_AI_API_KEY
-
+#set_api_key(c.ELEVENLABS_API_KEY)
 
 # Initialize the recording state
 
@@ -48,11 +49,29 @@ ctk.set_default_color_theme("my-theme.json")
 
 
 
-# Converting wave file to mp3
+def convert_to_mono_and_compress_to_mp3(input_file, output_file, target_size_MB=24):
 
-def convert_to_mp3(input_file, output_file):
-	audio = AudioSegment.from_wav(input_file)
-	audio.export(output_file, format="mp3")
+	# Load the audio file
+	audio = AudioSegment.from_file(input_file)
+
+	# Convert to mono
+	audio = audio.set_channels(1)
+
+	# Calculate target bitrate to achieve the desired file size (in bits per second)
+	duration_seconds = len(audio) / 1000.0  # pydub works in milliseconds
+	target_bitrate = int((target_size_MB * 1024 * 1024 * 8) / duration_seconds)
+
+	print(f"Audio Path: {input_file}")
+	print(f"Output Path: {output_file}")
+	print(f"Target Bitrate: {target_bitrate}")
+
+
+	# Compress the audio file
+	try:
+		audio.export(output_file, format="mp3", bitrate=f"{target_bitrate}")
+	except Exception as e:
+		print(f"Error during audio export: {e}")
+		return None
 
 
 
@@ -105,9 +124,13 @@ def record(app_instance, icon_rec, icon_stop_rec):
 		# Convert WAV to MP3
 		print("Converting to mp3")
 		mp3_filename = f"audio/audio_{now}.mp3"
-		convert_to_mp3(filename, mp3_filename)
+		convert_to_mono_and_compress_to_mp3(filename, mp3_filename)
 
 		app_instance.button_record.configure(text="Spela in igen", image=icon_rec)
+		
+		# Disable the record button for 2 seconds to prevent accidental double-click
+		app_instance.button_record.configure(state="disabled")
+		app_instance.after(3000, lambda: app_instance.button_record.configure(state="normal"))
 
 		#app_instance.textbox.delete(1.0, 'end')
 		app_instance.textbox.insert('end', "\n2. Inspelning stoppad.\nLjudfilen " + str(now) 
@@ -146,7 +169,7 @@ def send_to_whisper(app_instance, user_choice):
 
 	user_made_choice = user_choice
 	
-	print("Sending to Whisper...")
+	print("\nSKICKAR TILL WHISPER FÖR TRANSKRIBERING")
 	print(user_choice)
 
 	app_instance.textbox.insert('end', "\n4. Skickar inspelning till transkribering...\n")
@@ -159,6 +182,7 @@ def send_to_whisper(app_instance, user_choice):
 
 	print()
 	print(transcribed)
+	print("\n--- --- --- ---")
 
 	chat_response = transcribed
 
@@ -172,7 +196,7 @@ def send_to_whisper(app_instance, user_choice):
 
 def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	print()
-	print("Sending to " + gpt_model + "...")
+	print("\nSKICKAR TEXT TILL " + gpt_model + "")
 
 	global chat_response
 	global user_made_choice
@@ -186,7 +210,10 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	completion = openai.ChatCompletion.create(model=gpt_model, messages=messages)
 
 	chat_response = completion.choices[0].message.content
+	
+	print()
 	print(f'ChatGPT: {chat_response}')
+	print("--- --- --- ---")
 
 	app_instance.textbox.insert('end', "\n___ " + choice + ": " + gpt_model + " ___\n\n" + chat_response + "\n")
 
@@ -196,7 +223,7 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 
 def write_to_file():
 	print()
-	print("Writing to file...")
+	print("\nSPARAT I OBSIDIAN")
 
 	now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
@@ -207,15 +234,62 @@ def write_to_file():
 	if c.NOTES_APP == "obsidian":
 		f = open(c.OBSIDIAN_FILE_PATH + user_made_choice.capitalize() + " " + now + ".md", "w")
 		
-		if user_made_choice == "linkedin":
+		if user_made_choice == "Learning Lab":
 
-			f.write('<img src="' + dall_e_img_url + '">\n' + chat_response)
+			f.write('<img src="' + dall_e_img_url + '">\n\n' + chat_response)
 
 		else:
 
 			f.write(chat_response)
 
 		f.close()
+
+
+
+def write_promtp_dall_e(chat_response):
+
+	print("\nSKRIVER EN PROMPT TILL DALL-E FÖR ATT SKAPA EN BILD")
+
+	global dall_e_response
+
+	messages = []
+
+	prompt_primer = c.DALL_E_PROMT_PRIMER
+
+	messages.append({"role": "user", "content": prompt_primer + "\n" + chat_response})
+
+	completion = openai.ChatCompletion.create(model=c.GPT4, messages=messages)
+
+	dall_e_response = completion.choices[0].message.content
+	
+	print()
+	print(f'ChatGPT DALL-E: {dall_e_response}')
+	print("--- --- --- ---")
+
+	send_to_dall_e(dall_e_response)
+
+
+
+# Sending prompt to DALL-E
+
+def send_to_dall_e(dall_e_response):
+
+	print("\nSKAPAR EN BILD MED DALL-E")
+	
+	global dall_e_img_url
+
+	PROMPT = dall_e_response
+	
+	response = openai.Image.create(
+    prompt=PROMPT,
+    n=1,
+    size="1024x1024",
+	)
+	
+	print()
+	dall_e_img_url = response["data"][0]["url"]
+	print(response["data"][0]["url"])
+	print("--- --- --- ---")
 
 
 
@@ -256,8 +330,8 @@ class App(ctk.CTk):
 
 
 		self.combobox = ctk.CTkComboBox(master=self, height=46, 
-			values=["--- Välj mall ---", "Endast transkribering", "Generellt möte (GPT-3)", "Tankar och idéer (GPT-3)", 
-			"Projektbeskrivning (GPT-4)", "LinkedIn (GPT-3)", "Twitter (GPT-3)", "Tala in din egna prompt (GPT-4)"])
+			values=["--- Välj mall ---", "Endast transkribering", "Generellt möte", "Tankar och idéer", 
+			"Projektbeskrivning", "LinkedIn", "Learning Lab", "Tala in din egna prompt"])
 		self.combobox.grid(row=3, column=0, columnspan=2, padx=(20, 10), pady=0, sticky="ew")
 
 		self.button_send = ctk.CTkButton(master=self, height=46, command=self.button_callback, text="Bearbeta text")
@@ -284,7 +358,7 @@ class App(ctk.CTk):
 			whisper_thread.start()
 
 
-		elif self.choice_made == "LinkedIn (GPT-3)":
+		elif self.choice_made == "LinkedIn":
 
 			def process_choice(app_instance):
 				global transcribed_audio_exists
@@ -301,7 +375,7 @@ class App(ctk.CTk):
 			process_thread.start()
 
 
-		elif self.choice_made == "Twitter (GPT-3)":
+		elif self.choice_made == "Learning Lab":
 
 			def process_choice(app_instance):
 				global transcribed_audio_exists
@@ -311,14 +385,17 @@ class App(ctk.CTk):
 				while not transcribed_audio_exists:
 					time.sleep(0.1)
 
-				send_to_gpt(c.TWITTER_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
-
+				send_to_gpt(c.LEARNINGLAB_PROMPT_PRIMER, c.GPT4, app_instance, self.choice_made)
+				
+				write_promtp_dall_e(chat_response)
+				
+				write_to_file()
 
 			process_thread = threading.Thread(target=process_choice, args=(self,))
 			process_thread.start()
 
 
-		elif self.choice_made == "Generellt möte (GPT-3)":
+		elif self.choice_made == "Generellt möte":
 
 			def process_choice(app_instance):
 				global transcribed_audio_exists
@@ -335,7 +412,7 @@ class App(ctk.CTk):
 			process_thread.start()
 
 
-		elif self.choice_made == "Tankar och idéer (GPT-3)":
+		elif self.choice_made == "Tankar och idéer":
 
 			def process_choice(app_instance):
 				global transcribed_audio_exists
@@ -352,7 +429,7 @@ class App(ctk.CTk):
 			process_thread.start()
 
 
-		elif self.choice_made == "Projektbeskrivning (GPT-4)":
+		elif self.choice_made == "Projektbeskrivning":
 
 			def process_choice(app_instance):
 				global transcribed_audio_exists
@@ -362,14 +439,14 @@ class App(ctk.CTk):
 				while not transcribed_audio_exists:
 					time.sleep(0.1)
 
-				send_to_gpt(c.PROJECT_PROMPT_PRIMER, c.GPT4, app_instance, self.choice_made)
+				send_to_gpt(c.PROJECT_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
 
 
 			process_thread = threading.Thread(target=process_choice, args=(self,))
 			process_thread.start()
 
 
-		elif self.choice_made == "Tala in din egna prompt (GPT-4)":
+		elif self.choice_made == "Tala in din egna prompt":
 
 			def process_choice(app_instance):
 				global transcribed_audio_exists
