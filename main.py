@@ -1,5 +1,5 @@
 ### Diane
-### Version: 0.3
+### Version: 0.4
 ### Author: Micke Kring
 ### Contact: jag@mickekring.se
 
@@ -64,7 +64,6 @@ def convert_to_mono_and_compress_to_mp3(input_file, output_file, target_size_MB=
 	print(f"Audio Path: {input_file}")
 	print(f"Output Path: {output_file}")
 	print(f"Target Bitrate: {target_bitrate}")
-
 
 	# Compress the audio file
 	try:
@@ -132,7 +131,6 @@ def record(app_instance, icon_rec, icon_stop_rec):
 		app_instance.button_record.configure(state="disabled")
 		app_instance.after(3000, lambda: app_instance.button_record.configure(state="normal"))
 
-		#app_instance.textbox.delete(1.0, 'end')
 		app_instance.textbox.insert('end', "\n2. Inspelning stoppad.\nLjudfilen " + str(now) 
 			+ ".wav\när sparad.\n")
 
@@ -187,6 +185,7 @@ def send_to_whisper(app_instance, user_choice):
 	chat_response = transcribed
 
 	app_instance.textbox.insert('end', "\n___ Transkribering ___ \n\n" + transcribed + "\n")
+	app_instance.textbox.see('end')
 
 	transcribed_audio_exists = True
 
@@ -198,6 +197,8 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	print()
 	print("\nSKICKAR TEXT TILL " + gpt_model + "")
 
+	app_instance.textbox.insert('end', "\n5. Skickar transkribering till GPT...\n")
+
 	global chat_response
 	global user_made_choice
 
@@ -207,15 +208,16 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 
 	messages.append({"role": "user", "content": prompt_primer + "\n" + transcribed})
 
-	completion = openai.ChatCompletion.create(model=gpt_model, messages=messages)
+	app_instance.textbox.insert('end', "\n___ Bearbetad text ___ \n\n")
 
-	chat_response = completion.choices[0].message.content
+	for chunk in openai.ChatCompletion.create(model=gpt_model, messages=messages, stream=True,):
+		chat_response = chunk["choices"][0].get("delta", {}).get("content")
+		if chat_response is not None:
+			print(chat_response, end='')
+			app_instance.textbox.insert('end', chat_response)
+			app_instance.textbox.see('end')
 	
-	print()
-	print(f'ChatGPT: {chat_response}')
 	print("--- --- --- ---")
-
-	app_instance.textbox.insert('end', "\n___ " + choice + ": " + gpt_model + " ___\n\n" + chat_response + "\n")
 
 
 
@@ -297,9 +299,9 @@ class App(ctk.CTk):
 	def __init__(self):
 		super().__init__()
 
-		self.geometry("400x660")
-		self.title("Diane - version 0.2")
-		self.minsize(400, 660)
+		self.geometry("540x660")
+		self.title("Diane - version 0.4")
+		self.minsize(540, 660)
 
 		icon_rec = ctk.CTkImage(light_image=Image.open("images/rec.png"), 
 			dark_image=Image.open("images/rec.png"), size=(46, 50))
