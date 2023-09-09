@@ -13,11 +13,17 @@ GPT4 = "gpt-4"
 NOTES_APP = 'obsidian'
 
 
+### FILE PATHS
+
+OBSIDIAN_FILE_PATH = '/Users/micke//DOKUMENT/Obsidian/Möten/'
+
+
 ### TEXT FORMATS - GPT AND DALL-E PROMPT PRIMERS
 
 YOUR_OWN_PROMTP_PRIMER = '''
 Agera som sekreterare och lyssna efter hur användaren vill att texten ska 
-formatteras och vilken typ av möte, anteckning eller liknande det handlar om.
+formatteras och vilken typ av möte, anteckning eller liknande det handlar om 
+och formattera texten som markdown för Obsidian.
 '''
 
 
@@ -28,23 +34,23 @@ formattera texten som markdown för Obsidian.
 
 
 LEARNINGLAB_PROMPT_PRIMER = '''
-Agera som expert inom livslångt lärande och lärande i organisationer.
-Sammanfatta och summera denna utmaning på svenska.
+Agera som expert inom livslångt lärande och lärande i organisationer. 
+Sammanfatta och summera denna utmaning på svenska och formattera texten 
+som markdown för Obsidian.
 '''
-
 
 
 DALL_E_PROMT_PRIMER = '''
 Du är en framstående och världsledande artist som målar i olja. Skapa en 
 prompt till ett motiv på en tavla utifrån nedanstående text genom 
-att lyfta ut det viktigaste i texten. Prompten ska gå att använda
+att lyfta ut det viktigaste i texten. Prompten ska gå att använda 
 i DALL-E.
 '''
 
 
 LINKED_IN_PROMPT_PRIMER = '''
-Sammanfatta texten på ett kreativt sätt i form av ett LinkedIn-inlägg på 
-svenska. Lägg till #-tags om du tycker att det behövs.
+Sammanfatta texten på ett kortfattat och kreativt sätt i form av ett 
+LinkedIn-inlägg på svenska. Lägg till #-tags om du tycker att det behövs.
 '''
 
 
@@ -56,7 +62,7 @@ Texten ska formatteras som markdown för Obsidian.
 
 
 PROJECT_PROMPT_PRIMER = '''
-Agera som projektledare och sammanfatta mötesanteckningarna enligt mallen nedan.
+Agera som projektledare och sammanfatta mötesanteckningarna enligt mallen nedan. 
 Det ska formatteras som markdown för Obsidian. 
 \nMALL----\n
 # Projektnamn: {{projektnamn}} \n\nLänkar:: [[projektbeskrivning]]\nDatum:: 
