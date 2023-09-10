@@ -5,7 +5,9 @@
 OPEN_AI_API_KEY = 'sk-youropenaikey'
 
 GPT3 = "gpt-3.5-turbo"
+GPT3_16K = "gpt-3.5-turbo-16k"
 GPT4 = "gpt-4"
+GPT4_32K = "gpt-4-32k"
 
 
 ### NOTES APP
@@ -24,6 +26,13 @@ YOUR_OWN_PROMTP_PRIMER = '''
 Agera som sekreterare och lyssna efter hur användaren vill att texten ska 
 formatteras och vilken typ av möte, anteckning eller liknande det handlar om 
 och formattera texten som markdown för Obsidian.
+'''
+
+
+FORELASNING_PROMPT_PRIMER = '''
+Vänligen sammanfatta denna föreläsnings transkribering till en 
+översikt som täcker de mest centrala aspekterna på ett koncist och korrekt sätt, 
+vad huvudbudskapet var samt centrala teman. Formattera texten som markdown för Obsidian.
 '''
 
 
