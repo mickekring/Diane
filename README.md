@@ -26,10 +26,9 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 ## Updates
 * v 0.4 | 2023-09-09 | Now text is streamed from GPT instead of wating for the whole response to be generated.
 * v 0.3 | 2023-09-08 | Added a delay when you press 'stop recording' so you don't accidentally double press it and start a new recording. I also changed the conversion to mp3, so that the audio file always should stay below 25 MB, since that it the max input when sending the file to Whisper.
+* v 0.2 | Changed GUI fron tkinter to customtkinter. Audio file is converted to mp3 for file size which can be sent to Whisper (25 MB limit). Dropdown menu instead of buttons for templates.
+* v 0.1 | Initial Upload
 
 ## Problems?
 * If you run into empty recordings, you want to change the privacy settings of MacOS that prohibits the use the microphone via a python script that runs in IDLE. You'll also get a popup to grant microphone access for Terminal.
 
-## Updates
-* version 0.1 | Initial Upload
-* version 0.2 | Changed GUI fron tkinter to customtkinter. Audio file is converted to mp3 for file size which can be sent to Whisper (25 MB limit). Dropdown menu instead of buttons for templates. 
