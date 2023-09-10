@@ -25,6 +25,8 @@ if sys.platform == "win32":
 openai.api_key = c.OPEN_AI_API_KEY
 #set_api_key(c.ELEVENLABS_API_KEY)
 
+number = 1
+
 # Initialize the recording state
 
 recording = False
@@ -49,7 +51,7 @@ ctk.set_default_color_theme("my-theme.json")
 
 
 
-def convert_to_mono_and_compress_to_mp3(input_file, output_file, target_size_MB=24):
+def convert_to_mono_and_compress_to_mp3(input_file, output_file, target_size_MB=23):
 
 	# Load the audio file
 	audio = AudioSegment.from_file(input_file)
@@ -84,7 +86,7 @@ def record(app_instance, icon_rec, icon_stop_rec):
 		CHUNK = 1024
 		FORMAT = pyaudio.paInt16
 		CHANNELS = 1
-		RATE = 22050
+		RATE = 11025
 		frames = []
 		p = pyaudio.PyAudio()
 		stream = p.open(format=FORMAT,
@@ -163,7 +165,7 @@ def send_to_whisper(app_instance, user_choice):
 
 	global transcribed_audio_exists
 	global user_made_choice
-	global chat_response
+	global gpt_response
 
 	user_made_choice = user_choice
 	
@@ -182,12 +184,14 @@ def send_to_whisper(app_instance, user_choice):
 	print(transcribed)
 	print("\n--- --- --- ---")
 
-	chat_response = transcribed
+	gpt_response = transcribed
 
 	app_instance.textbox.insert('end', "\n___ Transkribering ___ \n\n" + transcribed + "\n")
 	app_instance.textbox.see('end')
 
 	transcribed_audio_exists = True
+
+	write_to_file()
 
 
 
@@ -200,11 +204,13 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	app_instance.textbox.insert('end', "\n5. Skickar transkribering till GPT...\n")
 
 	global chat_response
+	global gpt_response
 	global user_made_choice
 
 	user_made_choice = choice
 
 	messages = []
+	gpt_response = []
 
 	messages.append({"role": "user", "content": prompt_primer + "\n" + transcribed})
 
@@ -216,6 +222,10 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 			print(chat_response, end='')
 			app_instance.textbox.insert('end', chat_response)
 			app_instance.textbox.see('end')
+			gpt_response.append(chat_response)
+
+	# Join the list of strings into a single string
+	gpt_response = ''.join(gpt_response)
 	
 	print("--- --- --- ---")
 
@@ -224,27 +234,32 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 # Create markdown file for Obsidian
 
 def write_to_file():
+
+	global number
+
 	print()
 	print("\nSPARAT I OBSIDIAN")
 
 	now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
-	f = open("docs/" + user_made_choice + now + ".txt", "w")
-	f.write(chat_response)
+	f = open("docs/" + user_made_choice + now + str(number) + ".txt", "w")
+	f.write(str(gpt_response))
 	f.close()
 
 	if c.NOTES_APP == "obsidian":
-		f = open(c.OBSIDIAN_FILE_PATH + user_made_choice.capitalize() + " " + now + ".md", "w")
+		f = open(c.OBSIDIAN_FILE_PATH + user_made_choice.capitalize() + " " + now + str(number) + ".md", "w")
 		
 		if user_made_choice == "Learning Lab":
 
-			f.write('<img src="' + dall_e_img_url + '">\n\n' + chat_response)
+			f.write('<img src="' + dall_e_img_url + '">\n\n' + str(gpt_response))
 
 		else:
 
-			f.write(chat_response)
+			f.write(str(gpt_response))
 
 		f.close()
+
+	number += 1
 
 
 
@@ -258,7 +273,7 @@ def write_promtp_dall_e(chat_response):
 
 	prompt_primer = c.DALL_E_PROMT_PRIMER
 
-	messages.append({"role": "user", "content": prompt_primer + "\n" + chat_response})
+	messages.append({"role": "user", "content": prompt_primer + "\n" + str(chat_response)})
 
 	completion = openai.ChatCompletion.create(model=c.GPT4, messages=messages)
 
@@ -332,8 +347,9 @@ class App(ctk.CTk):
 
 
 		self.combobox = ctk.CTkComboBox(master=self, height=46, 
-			values=["--- Välj mall ---", "Endast transkribering", "Generellt möte", "Tankar och idéer", 
-			"Projektbeskrivning", "LinkedIn", "Learning Lab", "Tala in din egna prompt"])
+			values=["--- Välj mall ---", "Endast transkribering", "Generellt möte", "Föreläsning", 
+			"LinkedIn", "Learning Lab", "Projektbeskrivning", "Tala in din egna prompt",
+			"Tankar och idéer",])
 		self.combobox.grid(row=3, column=0, columnspan=2, padx=(20, 10), pady=0, sticky="ew")
 
 		self.button_send = ctk.CTkButton(master=self, height=46, command=self.button_callback, text="Bearbeta text")
@@ -370,7 +386,7 @@ class App(ctk.CTk):
 				while not transcribed_audio_exists:
 					time.sleep(0.1)
 
-				send_to_gpt(c.LINKED_IN_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+				send_to_gpt(c.LINKED_IN_PROMPT_PRIMER, c.GPT4, app_instance, self.choice_made)
 
 
 			process_thread = threading.Thread(target=process_choice, args=(self,))
@@ -395,6 +411,22 @@ class App(ctk.CTk):
 
 			process_thread = threading.Thread(target=process_choice, args=(self,))
 			process_thread.start()
+		
+
+		elif self.choice_made == "Föreläsning":
+
+			def process_choice(app_instance):
+				global transcribed_audio_exists
+				
+				if transcribed_audio_exists == False:
+					send_to_whisper(app_instance, self.choice_made)
+				while not transcribed_audio_exists:
+					time.sleep(0.1)
+
+				send_to_gpt(c.FORELASNING_PROMPT_PRIMER, c.GPT3_16K, app_instance, self.choice_made)
+
+			process_thread = threading.Thread(target=process_choice, args=(self,))
+			process_thread.start()
 
 
 		elif self.choice_made == "Generellt möte":
@@ -407,7 +439,7 @@ class App(ctk.CTk):
 				while not transcribed_audio_exists:
 					time.sleep(0.1)
 
-				send_to_gpt(c.GENERAL_MEET_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+				send_to_gpt(c.GENERAL_MEET_PROMPT_PRIMER, c.GPT4, app_instance, self.choice_made)
 
 
 			process_thread = threading.Thread(target=process_choice, args=(self,))
@@ -424,7 +456,7 @@ class App(ctk.CTk):
 				while not transcribed_audio_exists:
 					time.sleep(0.1)
 
-				send_to_gpt(c.IDEAS_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+				send_to_gpt(c.IDEAS_PROMPT_PRIMER, c.GPT4, app_instance, self.choice_made)
 
 
 			process_thread = threading.Thread(target=process_choice, args=(self,))
@@ -441,7 +473,7 @@ class App(ctk.CTk):
 				while not transcribed_audio_exists:
 					time.sleep(0.1)
 
-				send_to_gpt(c.PROJECT_PROMPT_PRIMER, c.GPT3, app_instance, self.choice_made)
+				send_to_gpt(c.PROJECT_PROMPT_PRIMER, c.GPT4, app_instance, self.choice_made)
 
 
 			process_thread = threading.Thread(target=process_choice, args=(self,))
@@ -464,7 +496,7 @@ class App(ctk.CTk):
 			process_thread = threading.Thread(target=process_choice, args=(self,))
 			process_thread.start()
 
-			
+	
 		else:
 			self.textbox.insert("insert", "\nDin text transkriberas nu och skickas\ndärefter till GPT.")
 
