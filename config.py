@@ -1,13 +1,33 @@
 
+### CHOOSE YOUR ENGINES
+
+WHISPER_VERSION = "OpenAI" # HF = Hugging Face, OpenAI
+LLM = "OpenAI" # Azure, OpenAI, HF = Hugging Face
+
 
 ### API KEYS AND CREDENTIALS
 
-OPEN_AI_API_KEY = 'sk-youropenaikey'
+# OpenAI
+OPEN_AI_API_KEY = 'sk-your-key'
 
+# OpenAI models
 GPT3 = "gpt-3.5-turbo"
 GPT3_16K = "gpt-3.5-turbo-16k"
 GPT4 = "gpt-4"
 GPT4_32K = "gpt-4-32k"
+
+# Microsoft Azure
+AZURE_OPENAI_KEY = 'your-azure-key'
+AZURE_OPENAI_ENDPOINT='https://uk-south-openai-instance.openai.azure.com/'
+
+# Eleven Labs
+ELEVENLABS_API_KEY = 'your-elevenlabs-key'
+
+# Hugging Face
+WHISPER_API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v2"
+LLAMA_API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-70b-chat-hf"
+FALCON_API_URL = ""
+headers = {"Authorization": "Bearer hf_your_key"}
 
 
 ### NOTES APP
@@ -17,35 +37,14 @@ NOTES_APP = 'obsidian'
 
 ### FILE PATHS
 
-OBSIDIAN_FILE_PATH = '/Users/micke//DOKUMENT/Obsidian/Möten/'
+OBSIDIAN_FILE_PATH = '/Users/micke/Obsidian/Micke/Möten/'
 
 
 ### TEXT FORMATS - GPT AND DALL-E PROMPT PRIMERS
 
-YOUR_OWN_PROMTP_PRIMER = '''
-Agera som sekreterare och lyssna efter hur användaren vill att texten ska 
-formatteras och vilken typ av möte, anteckning eller liknande det handlar om 
-och formattera texten som markdown för Obsidian.
-'''
-
-
-FORELASNING_PROMPT_PRIMER = '''
-Vänligen sammanfatta denna föreläsnings transkribering till en 
-översikt som täcker de mest centrala aspekterna på ett koncist och korrekt sätt, 
-vad huvudbudskapet var samt centrala teman. Formattera texten som markdown för Obsidian.
-'''
-
-
-GENERAL_MEET_PROMPT_PRIMER = '''
-Agera som sekreterare. Sammanställ dessa mötesanteckningar på svenska och 
-formattera texten som markdown för Obsidian.
-'''
-
-
 LEARNINGLAB_PROMPT_PRIMER = '''
 Agera som expert inom livslångt lärande och lärande i organisationer. 
-Sammanfatta och summera denna utmaning på svenska och formattera texten 
-som markdown för Obsidian.
+Sammanfatta och summera denna utmaning på svenska.
 '''
 
 
@@ -54,19 +53,6 @@ Du är en framstående och världsledande artist som målar i olja. Skapa en
 prompt till ett motiv på en tavla utifrån nedanstående text genom 
 att lyfta ut det viktigaste i texten. Prompten ska gå att använda 
 i DALL-E.
-'''
-
-
-LINKED_IN_PROMPT_PRIMER = '''
-Sammanfatta texten på ett kortfattat och kreativt sätt i form av ett 
-LinkedIn-inlägg på svenska. Lägg till #-tags om du tycker att det behövs.
-'''
-
-
-IDEAS_PROMPT_PRIMER = '''
-Agera som assistent och sammanfatta minnessanteckningarna på svenska. 
-Använd ingress innehållandes det viktigaste först och därefter sammanfattning. 
-Texten ska formatteras som markdown för Obsidian.
 '''
 
 
@@ -95,3 +81,4 @@ finns? Hur förhåller sig projektet till sina intressenter?}}\n\n##
 Kontaktuppgifter\n{{Vem kontaktar man för att veta mer om projektet?}}\n\n## 
 Källor\n{{Här skrivs vilka externa källor, om sådana finns, projektbeskrivningen syftar till}}
 '''
+
