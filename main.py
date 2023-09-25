@@ -1,5 +1,5 @@
 ### Diane
-app_version = "0.8.2"
+app_version = "0.8.3"
 ### Author: Micke Kring
 ### Contact: jag@mickekring.se
 
@@ -502,7 +502,7 @@ class App(ctk.CTk):
 		super().__init__()
 
 		self.geometry("640x660")
-		self.title("Diane - version" + app_version)
+		self.title("Diane - version " + app_version)
 		self.minsize(640, 660)
 
 		icon_rec = ctk.CTkImage(light_image=Image.open("images/rec.png"), 
@@ -588,15 +588,19 @@ class App(ctk.CTk):
 
 		global templates
 
-		default_font = ('Arial', 16)
-
 		# Load the templates from the JSON file
 		with open('templates.json', 'r') as f:
 			templates = json.load(f)
 
 		# This function will be called when the user selects "Create new template"
 		window = tk.Toplevel()
-		window.geometry('640x660')  # Set the size of the window
+		
+		if sys.platform == "win32":
+			default_font = ('Arial', 10)
+			window.geometry('800x900')  # Set the size of the window
+		else:
+			default_font = ('Arial', 16)
+			window.geometry('640x660')  # Set the size of the window
 		window.title('Skapa ny mall')  # Set the title of the window
 		window.configure(bg="#333333")
 
