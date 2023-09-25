@@ -17,7 +17,7 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 * You need an API key from OpenAI https://openai.com/
 * Download files and directories to your computer
 * Install FFMPEG on your computer
-* Install python modules using pip : __customtkinter__, __tkinter__, __pyaudio__, __pydub__ and __openai__
+* Install python modules using pip : __customtkinter__, __pyaudio__, __pydub__, __pillow__ and __openai__.
 * Open __config.py__ and insert you OpenAI API key in __OPEN_AI_API_KEY = ''__ and change the file path to your Obsidian directory, where you want to store your notes in __OBSIDIAN_FILE_PATH = ''__ 
 * Run __main.py__ and have fun
 * Promtps for the default templates are stored in config.py as well
