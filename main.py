@@ -134,6 +134,7 @@ def record(app_instance, icon_rec, icon_stop_rec):
 
 		app_instance.textbox.delete(1.0, 'end')
 		app_instance.textbox.insert('end', "1. Spelar in...\n")
+		app_instance.textbox.see('end')
         
 		print()
 		print("--- --- ---\n")
@@ -168,6 +169,7 @@ def record(app_instance, icon_rec, icon_stop_rec):
 
 		app_instance.textbox.insert('end', "\n2. Inspelning stoppad.\nLjudfilen " + str(now) 
 			+ ".wav\när sparad.\n")
+		app_instance.textbox.see('end')
 
 		recorded_audio_exists = True
 		
@@ -198,6 +200,7 @@ def choose_file(app_instance):
 	global transcribed_audio_exists
 
 	app_instance.textbox.insert('end', "\n1. Välj fil.")
+	app_instance.textbox.see('end')
 
 	# Open the file dialog and get the path of the selected file
 	file_path = filedialog.askopenfilename()
@@ -220,6 +223,7 @@ def choose_file(app_instance):
 	convert_to_mono_and_compress_to_mp3(dest_path, mp3_filename)
 
 	app_instance.textbox.insert('end', "\n2. Din fil är klar.")
+	app_instance.textbox.see('end')
 
 	recorded_audio_exists = True
 	transcribed_audio_exists = False
@@ -248,6 +252,7 @@ def send_to_whisper(app_instance, user_choice):
 	print(user_choice)
 
 	app_instance.textbox.insert('end', "\n4. Skickar inspelning till transkribering...\n")
+	app_instance.textbox.see('end')
 	
 	if c.WHISPER_VERSION == "OpenAI":
 	
@@ -328,6 +333,7 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	print("\nSKICKAR TEXT TILL " + gpt_model + "")
 
 	app_instance.textbox.insert('end', "\n5. Skickar transkribering till GPT...\n")
+	app_instance.textbox.see('end')
 
 	global chat_response
 	global gpt_response
@@ -342,6 +348,7 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	message_llama = prompt_primer + "\n" + transcribed
 
 	app_instance.textbox.insert('end', "\n___ Bearbetad text ___ \n\n")
+	app_instance.textbox.see('end')
 
 	if c.LLM == "Azure":
 	
@@ -367,7 +374,7 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 
 	elif c.LLM == "OpenAI":
 
-		for chunk in openai.ChatCompletion.create(model=gpt_model, messages=messages, stream=True,):
+		for chunk in openai.ChatCompletion.create(model=gpt_model, messages=messages, temperature=0.7, stream=True,):
 			chat_response = chunk["choices"][0].get("delta", {}).get("content")
 			if chat_response is not None:
 				print(chat_response, end='')
@@ -405,7 +412,7 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 		app_instance.textbox.insert('end', output)
 		app_instance.textbox.see('end')
 	
-	print("\nFinnished processing text with LLM\n")
+	print("\n\nFinnished processing text with LLM\n")
 	print("--- --- --- ---")
 
 
@@ -580,30 +587,36 @@ class App(ctk.CTk):
 
 		global templates
 
+		default_font = ('Arial', 16)
+
 		# Load the templates from the JSON file
 		with open('templates.json', 'r') as f:
 			templates = json.load(f)
 
 		# This function will be called when the user selects "Create new template"
 		window = tk.Toplevel()
-		window.geometry('400x500')  # Set the size of the window
+		window.geometry('500x600')  # Set the size of the window
 		window.title('Skapa ny mall')  # Set the title of the window
 		window.configure(bg="#333333")
 
-		label = tk.Label(window, text="Välj en mall att redigera", bg="#333333", fg="#ffffff")
+		label = tk.Label(window, text="Välj en mall att redigera", bg="#333333", fg="#ffffff", font=default_font)
 		label.pack(pady=(30, 10))
 
-		# Dropdown menu for selecting a template
-		template_combobox = ttk.Combobox(master=window, values=list(templates.keys()))
-		template_combobox.pack(pady=(0, 20))
-		#template_combobox.focus_set()
+		# Create a custom style for the combobox
+		style = ttk.Style()
+		style.configure('Custom.TCombobox', font=default_font)
+		style.configure('Custom.TCombobox.Listbox', font=default_font)
 
-		tk.Label(window, text='Namn på mallen', bg="#333333", fg="#ffffff").pack(pady=(0, 10))  # Add a label for the name entry
-		name_entry = tk.Entry(window, bg="#666666", fg="#ffffff", highlightthickness=0, relief="flat")
+		# Dropdown menu for selecting a template
+		template_combobox = ttk.Combobox(master=window, values=list(templates.keys()), style='Custom.TCombobox')
+		template_combobox.pack(pady=(0, 20))
+
+		tk.Label(window, text='Namn på mallen', bg="#333333", fg="#ffffff", font=default_font).pack(pady=(0, 10))  # Add a label for the name entry
+		name_entry = tk.Entry(window, bg="#666666", fg="#ffffff", highlightthickness=0, relief="flat", font=default_font)
 		name_entry.pack(pady=(0, 20))
 
-		tk.Label(window, text='Prompt', bg="#333333", fg="#ffffff").pack(pady=(0, 10))  # Add a label for the primer entry
-		primer_entry = tk.Text(window, height=10, bg="#666666", fg="#ffffff", highlightthickness=0, relief="flat")
+		tk.Label(window, text='Prompt', bg="#333333", fg="#ffffff", font=default_font).pack(pady=(0, 10))  # Add a label for the primer entry
+		primer_entry = tk.Text(window, height=10, bg="#666666", fg="#ffffff", highlightthickness=0, relief="flat", font=default_font)
 		primer_entry.pack(pady=(0, 20), padx=(20, 20), ipadx=20, ipady=20)
 
 		def load_template(event):
@@ -651,7 +664,7 @@ class App(ctk.CTk):
 			# Update the combobox in the main app
 			app_instance.update_combobox()
 
-		save_button = tk.Button(window, text="Spara", command=save_template)
+		save_button = tk.Button(window, text="Spara", command=save_template, font=default_font)
 		save_button.pack(pady=10)
 
 		def delete_template():
@@ -675,7 +688,7 @@ class App(ctk.CTk):
 			# Update the combobox in the main app
 			app_instance.update_combobox()
 
-		delete_button = tk.Button(window, text="Radera", command=delete_template)
+		delete_button = tk.Button(window, text="Radera", command=delete_template, font=default_font)
 		delete_button.pack()
 	
 
