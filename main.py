@@ -1,5 +1,5 @@
 ### Diane
-### Version: 0.8
+app_version = "0.8.2"
 ### Author: Micke Kring
 ### Contact: jag@mickekring.se
 
@@ -25,6 +25,7 @@ from pydub import AudioSegment
 
 if sys.platform == "win32":
 	import ctypes
+	ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
 ### VARIABLES
 
@@ -500,8 +501,8 @@ class App(ctk.CTk):
 	def __init__(self):
 		super().__init__()
 
-		self.geometry("540x660")
-		self.title("Diane - version 0.4")
+		self.geometry("640x660")
+		self.title("Diane - version" + app_version)
 		self.minsize(640, 660)
 
 		icon_rec = ctk.CTkImage(light_image=Image.open("images/rec.png"), 
@@ -595,7 +596,7 @@ class App(ctk.CTk):
 
 		# This function will be called when the user selects "Create new template"
 		window = tk.Toplevel()
-		window.geometry('500x600')  # Set the size of the window
+		window.geometry('640x660')  # Set the size of the window
 		window.title('Skapa ny mall')  # Set the title of the window
 		window.configure(bg="#333333")
 
