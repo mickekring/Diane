@@ -17,12 +17,13 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 * You need an API key from OpenAI https://openai.com/
 * Download files and directories to your computer
 * Install FFMPEG on your computer
-* Install python modules using pip : __customtkinter__, __pyaudio__, __pydub__, __pillow__ and __openai__.
+* Install python modules using pip : __customtkinter__, __pyaudio__, __pydub__, __pillow__, __tiktoken__ __ and __openai__.
 * Open __config.py__ and insert you OpenAI API key in __OPEN_AI_API_KEY = ''__ and change the file path to your Obsidian directory, where you want to store your notes in __OBSIDIAN_FILE_PATH = ''__. If you don't want to use Obsidian, change __NOTES_APP__ to 'none' and a text file will be saved in the docs folder. 
 * Run __main.py__ and have fun
 * Promtps for the default templates are stored in config.py as well
 
 ## Updates
+* v 0.9 | 2023-09-26 | When using both OpenAI or Azure as LLM, it calculates the amount of tokens needed and chooses the "right" model for you. GPT-4 8K is standard, and when > 8K it sends OpenAI to GPT3.5-16K and Azure to GPT-4-32K. There's a requirements.txt file as well for easy install of modules.
 * v 0.8 | 2023-09-24 | You can now create your own templates. You can also use Azure and Hugging Face for LLM and/or Whisper. You can also choose a pre-recorded audio file instead of only record.
 * v 0.4 | 2023-09-09 | Now text is streamed from GPT instead of wating for the whole response to be generated.
 * v 0.3 | 2023-09-08 | Added a delay when you press 'stop recording' so you don't accidentally double press it and start a new recording. I also changed the conversion to mp3, so that the audio file always should stay below 25 MB, since that it the max input when sending the file to Whisper.
