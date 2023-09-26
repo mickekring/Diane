@@ -1,5 +1,5 @@
 ### Diane
-app_version = "0.8.3"
+app_version = "0.8.4"
 ### Author: Micke Kring
 ### Contact: jag@mickekring.se
 
@@ -177,6 +177,7 @@ def record(app_instance, icon_rec, icon_stop_rec):
 		if recorded_audio_exists:
 			app_instance.button_send.configure(state="normal")
 			app_instance.button_save.configure(state="normal")
+			#app_instance.button_text.configure(state="normal")
 
 		print("Recording stopped.\n")
 
@@ -232,6 +233,7 @@ def choose_file(app_instance):
 	if recorded_audio_exists:
 		app_instance.button_send.configure(state="normal")
 		app_instance.button_save.configure(state="normal")
+		#app_instance.button_text.configure(state="normal")
 
 	print(dest_path + "\n")
 	print(mp3_filename + "\n")
@@ -425,13 +427,14 @@ def write_to_file():
 	global number
 
 	print()
-	print("\nSPARAT I OBSIDIAN")
 
 	now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
 	f = open("docs/" + user_made_choice + now + str(number) + ".txt", "w")
 	f.write(str(gpt_response))
 	f.close()
+
+	print("\nSPARAT SOM TEXT")
 
 	if c.NOTES_APP == "obsidian":
 		f = open(c.OBSIDIAN_FILE_PATH + user_made_choice.capitalize() + " " + now + str(number) + ".md", "w")
@@ -445,6 +448,8 @@ def write_to_file():
 			f.write(str(gpt_response))
 
 		f.close()
+
+		print("SPARAT I OBSIDIAN")
 
 	number += 1
 
@@ -554,7 +559,7 @@ class App(ctk.CTk):
 		self.button_send.grid(row=3, column=2, columnspan=1, padx=(10, 20), pady=0, sticky="ew")
 		self.button_send.configure(fg_color="gray20", hover_color="gray15", state="disabled")
 
-		self.button_save = ctk.CTkButton(master=self, height=46, command=write_to_file, text="Obsidian")
+		self.button_save = ctk.CTkButton(master=self, height=46, command=write_to_file, text="Spara")
 		self.button_save.grid(row=4, column=0, columnspan=1, padx=(20, 10), pady=20, sticky="ew")
 		self.button_save.configure(fg_color="#65c366", hover_color="#478d48", state="disabled")
 
@@ -562,9 +567,9 @@ class App(ctk.CTk):
 		self.button_docx.grid(row=4, column=1, columnspan=1, padx=(10, 10), pady=20, sticky="ew")
 		self.button_docx.configure(fg_color="#65c366", hover_color="#478d48", state="disabled")
 
-		self.button_text = ctk.CTkButton(master=self, height=46, command=write_to_file, text="Text")
-		self.button_text.grid(row=4, column=2, columnspan=1, padx=(10, 20), pady=20, sticky="ew")
-		self.button_text.configure(fg_color="#65c366", hover_color="#478d48", state="disabled")
+		self.button_ppt = ctk.CTkButton(master=self, height=46, command=write_to_file, text="Powerpoint")
+		self.button_ppt.grid(row=4, column=2, columnspan=1, padx=(10, 20), pady=20, sticky="ew")
+		self.button_ppt.configure(fg_color="#65c366", hover_color="#478d48", state="disabled")
 
 	
 	def update_combobox(self):
