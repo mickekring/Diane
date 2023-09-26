@@ -32,7 +32,7 @@ headers = {"Authorization": "Bearer hf_your_key"}
 
 ### NOTES APP
 
-NOTES_APP = 'obsidian'
+NOTES_APP = 'none' # obsidian or none
 
 
 ### FILE PATHS
