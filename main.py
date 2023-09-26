@@ -1,5 +1,5 @@
 ### Diane
-app_version = "0.8.4"
+app_version = "0.9.0"
 ### Author: Micke Kring
 ### Contact: jag@mickekring.se
 
@@ -21,6 +21,7 @@ import openai
 import config as c
 import time
 from pydub import AudioSegment
+import tiktoken
 #from elevenlabs import set_api_key
 
 if sys.platform == "win32":
@@ -83,9 +84,10 @@ except FileNotFoundError:
 original_template_name = None
 
 
+
 # Compressing the audio / video file
 
-def convert_to_mono_and_compress_to_mp3(input_file, output_file, target_size_MB=8):
+def convert_to_mono_and_compress_to_mp3(input_file, output_file, target_size_MB=22):
 
 	# Load the audio file
 	audio = AudioSegment.from_file(input_file)
@@ -201,7 +203,7 @@ def choose_file(app_instance):
 	global mp3_filename
 	global transcribed_audio_exists
 
-	app_instance.textbox.insert('end', "\n1. Välj fil.")
+	app_instance.textbox.insert('end', "\n1. Välj fil.\n")
 	app_instance.textbox.see('end')
 
 	# Open the file dialog and get the path of the selected file
@@ -224,7 +226,7 @@ def choose_file(app_instance):
 	mp3_filename = f"audio/audio_{now}.mp3"
 	convert_to_mono_and_compress_to_mp3(dest_path, mp3_filename)
 
-	app_instance.textbox.insert('end', "\n2. Din fil är klar.")
+	app_instance.textbox.insert('end', "\n2. Din fil är klar.\n")
 	app_instance.textbox.see('end')
 
 	recorded_audio_exists = True
@@ -254,7 +256,7 @@ def send_to_whisper(app_instance, user_choice):
 	print("\nSKICKAR TILL WHISPER FÖR TRANSKRIBERING")
 	print(user_choice)
 
-	app_instance.textbox.insert('end', "\n4. Skickar inspelning till transkribering...\n")
+	app_instance.textbox.insert('end', "\n4. Skickar inspelning till transkribering. Det kan ta allt från några sekunder till flera minuter beroende på hur lång inspelningen är.\n")
 	app_instance.textbox.see('end')
 	
 	if c.WHISPER_VERSION == "OpenAI":
@@ -332,11 +334,6 @@ def translate_with_whisper(app_instance, user_choice):
 # Sending transcription to GPT based on choice of template
 
 def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
-	
-	print("\nSKICKAR TEXT TILL " + gpt_model + "")
-
-	app_instance.textbox.insert('end', "\n5. Skickar transkribering till GPT...\n")
-	app_instance.textbox.see('end')
 
 	global chat_response
 	global gpt_response
@@ -346,6 +343,44 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 
 	messages = []
 	gpt_response = []
+
+	print("\nSending transcribed text to " + c.LLM + "")
+
+	# Counting tokens and choosing the apropriate model
+	
+	def num_tokens_from_string(string: str, encoding_name: str) -> int:
+
+		encoding = tiktoken.get_encoding(encoding_name)
+		num_tokens = len(encoding.encode(string))
+		return num_tokens
+
+	tokens_total = num_tokens_from_string((prompt_primer + "\n" + transcribed), "cl100k_base")
+	
+	print("\nTotal number of tokens: " + str(tokens_total) + "\n")
+
+	if tokens_total < 8000:
+		print("Sending to GPT-4-8K\n")
+		azure_engine = "sweden-gpt-4-8k"
+		gpt_model = c.GPT4
+
+	elif tokens_total < 16000 and c.LLM == "OpenAI":
+		print("Sending to GPT3.5-16K\n")
+		gpt_model = c.GPT3_16K
+
+	elif tokens_total > 16000 and c.LLM == "OpenAI":
+		print("Error. More than 16K tokens.\n")
+		app_instance.textbox.insert('end', "\nTexten är för lång för att bearbetas. GPT klarar av 16000 tokens och din text var " + str(tokens_total) + " lång.\n\n")
+		app_instance.textbox.see('end')
+
+	elif tokens_total < 32000 and c.LLM == "Azure":
+		print("Sending to Azure: GPT-4-32K\n")
+		azure_engine = "sweden-gpt-4-32k"
+
+	else:
+		print("Sending Error. More than 32K tokens.\n")
+
+	app_instance.textbox.insert('end', "\n5. Skickar transkribering till " + c.LLM + "...\n")
+	app_instance.textbox.see('end')
 
 	messages.append({"role": "user", "content": prompt_primer + "\n" + transcribed})
 	message_llama = prompt_primer + "\n" + transcribed
@@ -360,7 +395,7 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 			api_base = c.AZURE_OPENAI_ENDPOINT,
 			api_type = 'azure',
 			api_version = '2023-05-15',
-			engine = 'gpt-4-uk-south',
+			engine = azure_engine,
 
 			messages=messages, 
 			stream=True,):
@@ -377,8 +412,13 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 
 	elif c.LLM == "OpenAI":
 
-		for chunk in openai.ChatCompletion.create(model=gpt_model, messages=messages, temperature=0.7, stream=True,):
+		for chunk in openai.ChatCompletion.create(
+			model=gpt_model, 
+			messages=messages, 
+			temperature=0.7, 
+			stream=True,):
 			chat_response = chunk["choices"][0].get("delta", {}).get("content")
+
 			if chat_response is not None:
 				print(chat_response, end='')
 				app_instance.textbox.insert('end', chat_response)
@@ -517,7 +557,7 @@ class App(ctk.CTk):
 			dark_image=Image.open("images/stop_rec.png"), size=(46, 50))
 		
 		icon_upload = ctk.CTkImage(light_image=Image.open("images/upload.png"), 
-			dark_image=Image.open("images/upload.png"), size=(46, 50))
+			dark_image=Image.open("images/upload.png"), size=(44, 48))
 
 		image_logo = ctk.CTkImage(light_image=Image.open("images/logo.png"), 
 			dark_image=Image.open("images/logo.png"), size=(135, 40))
