@@ -32,7 +32,7 @@ headers = {"Authorization": "Bearer hf_your_key"}
 
 ### NOTES APP
 
-NOTES_APP = 'none' # obsidian or none
+NOTES_APP = 'none' # obsidian or none | If none, a text file will be saved in the docs folder.
 
 
 ### FILE PATHS
