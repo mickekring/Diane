@@ -5,7 +5,7 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 
 ## Disclaimer
 * Written in Python by a non-coder
-* Only tested on MacOS
+* Tested mainly on MacOS but works on Win.
 
 ## Flow
 * Press "Spela in" to start recording your voice
