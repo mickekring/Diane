@@ -3,3 +3,4 @@ pyaudio
 pydub
 openai
 pillow
+tiktoken
