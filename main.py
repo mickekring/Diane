@@ -1,5 +1,5 @@
 ### Diane
-app_version = "0.9.0"
+app_version = "0.9.1"
 ### Author: Micke Kring
 ### Contact: jag@mickekring.se
 
@@ -17,7 +17,8 @@ import sys
 import json
 import requests
 import datetime
-import openai
+from openai import OpenAI
+from openai import AzureOpenAI
 import config as c
 import time
 from pydub import AudioSegment
@@ -29,9 +30,6 @@ if sys.platform == "win32":
 	ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
 ### VARIABLES
-
-# Open AI
-openai.api_key = c.OPEN_AI_API_KEY
 
 # Eleven Labs
 #set_api_key(c.ELEVENLABS_API_KEY)
@@ -179,7 +177,6 @@ def record(app_instance, icon_rec, icon_stop_rec):
 		if recorded_audio_exists:
 			app_instance.button_send.configure(state="normal")
 			app_instance.button_save.configure(state="normal")
-			#app_instance.button_text.configure(state="normal")
 
 		print("Recording stopped.\n")
 
@@ -235,7 +232,6 @@ def choose_file(app_instance):
 	if recorded_audio_exists:
 		app_instance.button_send.configure(state="normal")
 		app_instance.button_save.configure(state="normal")
-		#app_instance.button_text.configure(state="normal")
 
 	print(dest_path + "\n")
 	print(mp3_filename + "\n")
@@ -245,6 +241,9 @@ def choose_file(app_instance):
 # Sending audio to Whisper
 
 def send_to_whisper(app_instance, user_choice):
+
+	# Open AI
+	client = OpenAI(api_key = c.OPEN_AI_API_KEY)
 
 	global transcribed_audio_exists
 	global user_made_choice
@@ -262,8 +261,11 @@ def send_to_whisper(app_instance, user_choice):
 	if c.WHISPER_VERSION == "OpenAI":
 	
 		audio_file= open(mp3_filename, "rb")
-		transcript = openai.Audio.transcribe("whisper-1", audio_file)		
-		transcribed = transcript["text"]
+		transcribed = client.audio.transcriptions.create(
+			  model="whisper-1", 
+			  file=audio_file,
+			  response_format="text"
+			)
 
 	elif c.WHISPER_VERSION == "HF":
 		def query(filename):
@@ -298,9 +300,10 @@ def send_to_whisper(app_instance, user_choice):
 
 def translate_with_whisper(app_instance, user_choice):
 
-	#global user_made_choice
+	# Open AI
+	client = OpenAI(api_key = c.OPEN_AI_API_KEY)
+
 	global gpt_response
-	#global transcribed
 
 	user_made_choice = user_choice
     
@@ -312,17 +315,15 @@ def translate_with_whisper(app_instance, user_choice):
 
 	print("Opened audio file")
 
-	#openai.api_key = api_key
-	translate = openai.Audio.translate("whisper-1", audio_file)
+	transcribed = client.audio.translations.create(
+			  model="whisper-1", 
+			  file=audio_file,
+			  response_format="text"
+			)
 
 	print("Sent the text to Whisper")
 
-	# Extract transcribed text from the response
-	transcribed = translate["text"]
-
 	print(transcribed)
-
-	#return translated_text
 
 	gpt_response = transcribed
 
@@ -389,35 +390,55 @@ def send_to_gpt(prompt_primer, gpt_model, app_instance, choice):
 	app_instance.textbox.see('end')
 
 	if c.LLM == "Azure":
-	
-		for chunk in openai.ChatCompletion.create(
-			api_key = c.AZURE_OPENAI_KEY,
-			api_base = c.AZURE_OPENAI_ENDPOINT,
-			api_type = 'azure',
-			api_version = '2023-05-15',
-			engine = azure_engine,
 
-			messages=messages, 
-			stream=True,):
-			chat_response = chunk["choices"][0].get("delta", {}).get("content")
-			
-			if chat_response is not None:
-				print(chat_response, end='')
-				app_instance.textbox.insert('end', chat_response)
-				app_instance.textbox.see('end')
-				gpt_response.append(chat_response)
+		client = AzureOpenAI(
+		    api_key =c.AZURE_OPENAI_KEY,  
+		    api_version="2023-10-01-preview",
+		    azure_endpoint = c.AZURE_OPENAI_ENDPOINT
+		    )
+
+		chat_response = ""
+		gpt_response = []
+	
+		for chunk in client.chat.completions.create(
+			model = azure_engine,
+			messages = messages, 
+			stream = True,
+			):
+
+			# Log the chunk for debugging
+			#print("Received chunk:", chunk)
+
+			if chunk.choices:
+				# Extract content from the delta attribute
+				content = chunk.choices[0].delta.content
+				if content:
+					chat_response = str(content)
+					print(chat_response, end='')
+					app_instance.textbox.insert('end', chat_response)
+					app_instance.textbox.see('end')
+					gpt_response.append(chat_response)
+			else:
+				print("No choices available in the chunk.")
 		
 		# Join the list of strings into a single string
 		gpt_response = ''.join(gpt_response)
 
 	elif c.LLM == "OpenAI":
 
-		for chunk in openai.ChatCompletion.create(
+		# Open AI
+		client = OpenAI(api_key = c.OPEN_AI_API_KEY)
+
+		chat_response = ""
+
+		for chunk in client.chat.completions.create(
 			model=gpt_model, 
 			messages=messages, 
-			temperature=0.7, 
+			temperature=0.6, 
 			stream=True,):
-			chat_response = chunk["choices"][0].get("delta", {}).get("content")
+
+			if chunk.choices[0].delta.content:
+				chat_response = str(chunk.choices[0].delta.content)
 
 			if chat_response is not None:
 				print(chat_response, end='')
