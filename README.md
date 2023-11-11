@@ -23,6 +23,7 @@ This is a basic, simple prototype of the app Diane, which is a voice recorder us
 * Promtps for the default templates are stored in config.py as well
 
 ## Updates
+* v 0.9.1 | 2023-11-11 | I've updated the API calls for both Azure and OpenAI
 * v 0.9 | 2023-09-26 | When using both OpenAI or Azure as LLM, it calculates the amount of tokens needed and chooses the "right" model for you. GPT-4 8K is standard, and when > 8K it sends OpenAI to GPT3.5-16K and Azure to GPT-4-32K. There's a requirements.txt file as well for easy install of modules.
 * v 0.8 | 2023-09-24 | You can now create your own templates. You can also use Azure and Hugging Face for LLM and/or Whisper. You can also choose a pre-recorded audio file instead of only record.
 * v 0.4 | 2023-09-09 | Now text is streamed from GPT instead of wating for the whole response to be generated.
